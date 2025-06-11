@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\factoryStatus;
+use App\Models\investment_opprtunities;
 use Illuminate\Database\Eloquent\Model;
 
 class factories extends Model
@@ -21,12 +22,12 @@ class factories extends Model
         public function user(){
         return $this->belongsTo(User::class);
     }
-        public function opprtunities(){
-        return $this->hasMany(investment_opprtunities::class);
+        public function investment_opprtunities(){
+        return $this->hasMany(investment_opprtunities::class, 'factory_id');
     }
 
             public function images(){
-        return $this->hasMany(opprtunity_images::class);
+        return $this->hasMany(opprtunity_images::class,'factory_id');
     }
     protected $casts = [
         'status' => factoryStatus::class,

@@ -10,7 +10,6 @@ use App\Http\Controllers\StripePaymentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Hash;
-
 use App\Http\Controllers\CategoriesController;
 use App\Http\Controllers\FactoriesController;
 use App\Http\Controllers\TransactionController;
@@ -29,12 +28,12 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::controller(CategoriesController::class)->group(function(){
     Route::get('/categories/index','index');
     Route::post('/categories/store','store');
-    Route::delete('/categories/destroy/{id}','destroy')->middleware(middleware: 2);
+    Route::delete('/categories/destroy/{id}','destroy')->middleware('auth:sanctum');
 
 });
 
 Route::controller(FactoriesController::class)->group(function(){
-    Route::get('/factories/indexForUser','indexForUser')->middleware('auth:sanctum');;
+    Route::get('/factories/indexForUser','indexForUser')->middleware('auth:sanctum');
     Route::get('/factories/getAllFactories','getAllFactories');
     Route::post('/factories/updateFactoryStatus/{id}','updateFactoryStatus');
     Route::post('/factories/updateFactory/{id}','updateFactory');
@@ -42,6 +41,16 @@ Route::controller(FactoriesController::class)->group(function(){
     Route::get('/factories/getfactorypending','getfactorypending');
     
 
+});
+
+
+Route::controller(InvestmentOpprtunitiesController::class)->group(function(){
+    Route::post('/InvestmentOpprtunities/storeoppertunitiy/{id}','storeoppertunitiy')->middleware( 'auth:sanctum');
+    Route::put('/InvestmentOpprtunities/updateOpportunity/{id}','updateOpportunity')->middleware('auth:sanctum');
+    Route::get('/InvestmentOpprtunities/getAcceptedOpportunitiesWithDetails','getAcceptedOpportunitiesWithDetails');
+    Route::get('/InvestmentOpprtunities/getFactoryOpportunities/{id}','getFactoryOpportunities');
+    Route::get('/InvestmentOpprtunities/getOpportunitiesByCategory/{id}','getOpportunitiesByCategory');
+    Route::post('/InvestmentOpprtunities/confirmPurchase','confirmPurchase')->middleware('auth:sanctum');
 });
 
 
@@ -85,14 +94,7 @@ Route::controller(UserController::class)->group(function(){
 
 
 
-Route::controller(InvestmentOpprtunitiesController::class)->group(function(){
-    Route::get('/InvestmentOpprtunities/index','index');
-    Route::get('/InvestmentOpprtunities/{id}','show');
-    Route::post('/InvestmentOpprtunities/store','store');
-    Route::put('/InvestmentOpprtunities/update/{id}','update');
-    Route::delete('/InvestmentOpprtunities/destroy/{id}','destroy');
 
-});
 
 
 

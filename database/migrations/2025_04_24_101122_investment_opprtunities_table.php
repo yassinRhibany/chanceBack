@@ -17,11 +17,11 @@ return new class extends Migration
             $table->decimal('target_amount');
             $table->decimal('collected_amount');
             $table->foreignId('factory_id');
-            $table->decimal('minimum_target');
-            $table->date('strtup');
+            $table->decimal('minimum_target')->nullable();
+            $table->date('strtup')->nullable();
             $table->string('payout_frequency');
             $table->decimal('profit_percentage');
-            $table->string('descrption');
+            $table->string('descrption')->nullable();
 
             
         });
@@ -32,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('investment');
+        Schema::dropIfExists('investment_opprtunities');
     }
 };
