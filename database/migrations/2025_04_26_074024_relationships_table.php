@@ -79,8 +79,8 @@ return new class extends Migration
             $table->dropForeign(['user_id']);
             $table->dropForeign(['factory_id']);
         });
-        Schema::table('opprtunity_images', function (Blueprint $table) {
-            $table->dropForeign(['factory_id']);
-        });
+        // Schema::table('opprtunity_images', function (Blueprint $table) {
+        //     $table->dropForeign(['factory_id']);
+        // });
     }
 };

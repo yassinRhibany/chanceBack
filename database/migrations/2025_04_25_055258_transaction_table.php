@@ -14,11 +14,10 @@ return new class extends Migration
         Schema::create('transaction', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id');
-            $table->string('stripe_payment_intent_id')->unique();
-            $table->string('currency', 10)->default('usd');
             $table->enum('type', ['deposit', 'withdrawal', 'sell', 'buy', 'return']);
             $table->decimal('amount');
             $table->date('time_operation');
+            $table->timestamps();
         });
     }
 

@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class investment_offers extends Model
 {
+     
     protected $fillable = [
         'investment_id',
         'seller_id',
-        'offered_amount',
+        'offred_amount',
         'price',
         'status',
         'buyer_id',

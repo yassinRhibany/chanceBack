@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('payout_frequency');
             $table->decimal('profit_percentage');
             $table->string('descrption')->nullable();
+            $table->timestamps();
 
             
         });

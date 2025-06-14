@@ -23,11 +23,11 @@ class InvestmentOffersController extends Controller
 {
     $offers = investment_offers::where('status', 0)
         ->with([
-            'investment.opportunity' => function ($query) {
+            'investment.opprtunty' => function ($query) {
                 $query->select( 'target_amount', 'collected_amount', 'minimum_target', 'startup', 'payout_frequency','profit_percentage', 'descrption'); // اختر الأعمدة التي تحتاجها
             }
         ])
-        ->select('offered_amount', 'price') 
+        ->select('offred_amount', 'price') 
         ->get();
 
     return response()->json($offers);
@@ -38,7 +38,7 @@ public function filterByCategory(Request $request)
     $query = investment_offers::query();
 
     if ($request->has('category_id')) {
-        $query->whereHas('investment.opportunity.factory.category', function ($q) use ($request) 
+        $query->whereHas('investment.opprtunty.factory.category', function ($q) use ($request) 
         {
             $q->where('id', $request->category_id);
         });
@@ -54,7 +54,7 @@ public function storeOffer(Request $request)
 {
     $request->validate([
         'investment_id' => 'required|exists:investments,id',
-        'offered_amount' => 'required|numeric|min:0',
+        'offred_amount' => 'required|numeric|min:0',
         'price' => 'required|numeric|min:0',
     ]);
 
@@ -63,7 +63,7 @@ public function storeOffer(Request $request)
     $offer = investment_offers::create([
         'seller_id' => $user->id,
         'investment_id' => $request->investment_id,
-        'offered_amount' => $request->offered_amount,
+        'offred_amount' => $request->offred_amount,
         'price' => $request->price,
         'status' => 0,       // 0= unsell
     ]);

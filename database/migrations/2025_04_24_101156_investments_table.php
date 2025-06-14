@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id');
             $table->foreignId('opprtunty_id');
             $table->decimal('amount');
+            $table->timestamps();
         });
     }
 

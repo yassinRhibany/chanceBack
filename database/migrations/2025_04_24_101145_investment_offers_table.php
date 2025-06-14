@@ -15,11 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('investment_id');
             $table->foreignId('seller_id');
-            $table->foreignId('buyer_id');
+            $table->foreignId('buyer_id')->nullable();
             $table->decimal('offred_amount');
             $table->decimal('price');
-            $table->boolean('status');
-            $table->date('sold_at');
+            $table->boolean('status')->default(0);
+            $table->date('sold_at')->nullable();
+            $table->timestamps();
         });    }
 
     /**

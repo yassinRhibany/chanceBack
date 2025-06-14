@@ -7,84 +7,82 @@ use App\Models\investment_opprtunities;
 use App\Models\investments;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class InvestmentsController extends Controller
 {
-    
     public function index()
-    {
-        $investments = investments::all();
-        return response()->json($investments);
-    }
-
-    public function show($id)
-    {
-        $investments = investments::findOrFail($id);
-        return response()->json($investments);
-    }
-
-    public function store(Request $request)
-    {
-        
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'opprtunty_id' => 'required|exists:investment_opprtunities,id',
-            'amount' => 'required|numeric',
-        ]);
-        $user = User::where('id',$request->user_id)->get();
-        $investmantopprtunity = investment_opprtunities::where('investment_opprtunities_id',$request->investment_opprtunities_id)->get();
-       
-        if ($request->amount >= $investmantopprtunity->minimum_target) {
-            $investments = investments::create($request->only([
-                'user_id', 'opprtunty_id', 'amount'
-            ]));
-            
-            return response()->json($investments, 201);
-            
-        }
-
-       
-
-
-       
-    }
-
-    public function update(Request $request, $id)
-    {
-        $investments = investments::findOrFail($id);
-
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'opprtunty_id' => 'required|exists:investment_opprtunities,id',
-            'amount' => 'required|numeric',
-        ]);
-
-        $investments = investments::update($request->only([
-            'user_id', 'opprtunty_id', 'amount'
-        ]));
-
-        return response()->json($investments);
-    }
-
-    public function destroy($id)
-    {
-        $investments = investments::findOrFail($id);
-        $investments->delete();
-
-        return response()->json(['message' => 'investments deleted successfully']);
-    }
-
-    public function filterByUser($user_id)
 {
-    $investments = investments::where('user_id', $user_id)->get();
-    return response()->json($investments);
-}
+    $investments = investments::with([
+        'opprtunty:id,factory_id,target_amount,collected_amount,minimum_target,payout_frequency,profit_percentage,descrption',
+        'opprtunty.factory:id,name'
+    ])
+    ->get(['id', 'opprtunty_id', 'amount', 'user_id']);
 
-public function purchase(Request $request){
-    $user = User::where('id',$request->user_id)->get();
-    $investmantopprtunity = investment_opprtunities::where('investment_opprtunities_id',$request->investment_opprtunities_id)->get();
-   
+    $result = $investments->map(function ($investment) {
+        $opportunity = $investment->opprtunty;
+        $target = $opportunity->target_amount ?? 0;
+
+        $percentage = ($target > 0)
+            ? round(($investment->amount / $target) * 100, 2)
+            : 0;
+
+        return [
+            'user_id' => $investment->user_id,
+            'amount' => $investment->amount,
+            'percentage' => $percentage, // ✅ تمت إضافتها
+            'opportunity' => [
+                'target_amount' => $target,
+                'collected_amount' => $opportunity->collected_amount ?? null,
+                'minimum_target' => $opportunity->minimum_target ?? null,
+                'payout_frequency' => $opportunity->payout_frequency ?? null,
+                'profit_percentage' => $opportunity->profit_percentage ?? null,
+                'descrption' => $opportunity->descrption ?? null,
+                'factory_name' => $opportunity->factory->name ?? null,
+            ],
+        ];
+    });
+
+    return response()->json($result);
+}
     
+
+
+public function filterByUser()
+{
+    $user = Auth::user();
+
+    $investments = investments::with([
+        'opprtunty:id,factory_id,target_amount,collected_amount,minimum_target,payout_frequency,profit_percentage,descrption',
+        'opprtunty.factory:id,name'
+    ])
+    ->where('user_id', $user->id)
+    ->get(['id', 'opprtunty_id', 'amount']);
+
+    $result = $investments->map(function ($investment) {
+        $opportunity = $investment->opprtunty;
+        $target = $opportunity->target_amount ?? 0;
+
+        $percentage = ($target > 0)
+            ? round(($investment->amount / $target) * 100, 2)
+            : 0;
+
+        return [
+            'amount' => $investment->amount,
+            'percentage' => $percentage, // ✅ تمت إضافتها
+            'opportunity' => [
+                'target_amount' => $target,
+                'minimum_target' => $opportunity->minimum_target ?? null,
+                'payout_frequency' => $opportunity->payout_frequency ?? null,
+                'profit_percentage' => $opportunity->profit_percentage ?? null,
+                'collected_amount' => $opportunity->collected_amount ?? null,
+                'descrption' => $opportunity->descrption ?? null,
+                'factory_name' => $opportunity->factory->name ?? null,
+            ],
+        ];
+    });
+
+    return response()->json($result);
 }
 
 }

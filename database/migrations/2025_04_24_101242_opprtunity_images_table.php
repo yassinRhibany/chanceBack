@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('factory_id');
             $table->string('image_path');
+            $table->timestamps();
         });
     }
 

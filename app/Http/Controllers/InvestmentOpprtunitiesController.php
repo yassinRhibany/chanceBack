@@ -9,6 +9,7 @@ use App\Models\investment_opprtunities;
 use App\Models\investments;
 use App\Models\transaction;
 use App\Models\User;
+use App\TrancationType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -174,19 +175,21 @@ public function getOpportunitiesByCategory( $categoryId)
 
 public function confirmPurchase(Request $request)
 {
+    $user=Auth::user();
+    
     $request->validate([
-        'opportunity_id' => 'required|exists:investment_opprtunities,id',
+        'opprtunty_id' => 'required|exists:investment_opprtunities,id',
         'amount' => 'required|numeric|min:1',
     ]);
 
   
-    $user=Auth()->user;
+    
 
     if (!$user) {
         return response()->json(['message' => 'unauthorized  '], 401);
     }
 
-    $opportunity = investment_opprtunities::find($request->opportunity_id);
+    $opportunity = investment_opprtunities::find($request->opprtunty_id);
 
     // التحقق من مبلغ الشراء
     if ($request->amount < $opportunity->minimum_target || $request->amount > $opportunity->target_amount) {
@@ -202,7 +205,6 @@ public function confirmPurchase(Request $request)
     try {
         // إنقاص المبلغ من المحفظة
         $user->wallet -= $request->amount;
-        $user->save();
 
         $opportunity->collected_amount += $request->amount;
 
@@ -210,18 +212,22 @@ public function confirmPurchase(Request $request)
         transaction::create([
             'user_id' => $user->id,
             'amount' => $request->amount,
-            'type' => 'buy',
-            'created_at' => now(),
+            'type' => TrancationType::Buy,
+            'time_operation' => now(),
         ]);
 
         // تسجيل الاستثمار (تثبيت العملية)
         investments::create([
             'user_id' => $user->id,
-            'opportunity_id' => $opportunity->id,
+            'opprtunty_id' => $opportunity->id,
             'amount' => $request->amount,
         ]);
+        $opportunity->save();
+        $user->save();
 
+        
         DB::commit();
+        
 
         return response()->json(['message' => 'Purchase confirmed successfully']);
     } catch (\Exception $e) {

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->decimal('amount');
             $table->date('return_date');
             $table->boolean('status');
+            $table->timestamps();
             
         });
     }
