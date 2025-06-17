@@ -8,6 +8,7 @@ use App\Models\investments;
 use App\Models\returns;
 use App\Models\transaction;
 use App\Models\User;
+use App\TrancationType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,10 +18,9 @@ class ReturnsController extends Controller
     
 public function getUserReturns(Request $request)
 {
-    $user = $request->user();
-
+    $user =Auth::user();
     $returns = returns::with([
-        'investment.opportunity:id,description'
+        'investment.opprtunty:id,descrption'
     ])
     ->whereHas('investment', function($query) use ($user) {
         $query->where('user_id', $user->id);
@@ -39,7 +39,7 @@ public function getUserReturns(Request $request)
         return [
             'return_value' => $return->amount, // ← قيمة العائد الحقيقية
             'return_share' => round($percentage, 2), // ← النسبة كرقم
-            'description' => optional($return->investment->opportunity)->description,
+            'description' => optional($return->investment->opprtunty)->descrption,
             'created_at' => $return->created_at->toDateTimeString(),
         ];
     });
@@ -87,7 +87,7 @@ public function distributeReturn(Request $request, $opportunityId)
             // تسجيل الحركة
             transaction::create([
                 'user_id' => $investor->id,
-                'type' => 'return',
+                'type' => TrancationType::Return,
                 'amount' => $investorReturn,
                 'time' => now(),
             ]);

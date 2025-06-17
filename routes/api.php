@@ -63,62 +63,32 @@ Route::controller(InvestmentOffersController::class)->group(function(){
     Route::get('/offer/index','index');
     Route::get('/offer/filterByCategory','filterByCategory');
     Route::post('/offer/storeOffer','storeOffer')->middleware('auth:sanctum');
-    Route::post('/offer/buyOffer','buyOffer');
-    Route::get('/offer/getUserInvestments','getUserInvestments');
+    Route::post('/offer/buyOffer','buyOffer')->middleware('auth:sanctum');
 });
+
+Route::post('images/uploadFactoryImage/{id}', [OpprtunityImagesController::class, 'uploadFactoryImage']);
 
 Route::controller(UserController::class)->group(function(){
-    Route::get('/User/showProfile','showProfile');
-    Route::post('/User/getUsersWithRoles','getUsersWithRoles');
+    Route::get('/User/showProfile','showProfile')->middleware('auth:sanctum');
+    Route::get('/User/getUsers','getUsers');
+    Route::post('/User/updateProfile','updateProfile')->middleware('auth:sanctum');
 
 });
 
 
+Route::controller(TransactionController::class)->group(function(){
+    Route::get('/Transaction/index','index');
+    Route::get('/Transaction/getUserTransactions','getUserTransactions')->middleware('auth:sanctum');
 
-
-
-
-
-
-
-
-Route::post('transactions/user', [TransactionController::class, 'getUserTransactions']);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Route::controller(InvestmentsController::class)->group(function(){
-    Route::get('/Investments/index','index');
-    Route::get('/Investments/{id}','show');
-    Route::post('/Investments/store','store');
-    Route::put('/Investments/update/{id}','update');
-    Route::delete('/Investments/destroy/{id}','destroy');
-    Route::get('/InvestmentOffers/filterByBuyer/{id}','  filterByBuyer');
 });
-
-
 
 Route::controller(ReturnsController::class)->group(function(){
+    Route::get('/Returns/getUserReturns','getUserReturns')->middleware('auth:sanctum');
+    Route::post('/Returns/distributeReturn','distributeReturn')->middleware('auth:sanctum');
 
 });
+
+
 
 
 

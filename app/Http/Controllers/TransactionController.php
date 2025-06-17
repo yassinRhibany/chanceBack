@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
 {
@@ -21,11 +22,7 @@ class TransactionController extends Controller
 
     public function getUserTransactions(Request $request)
 {
-    $request->validate([
-        'token' => 'required|string',
-    ]);
-
-    $user = User::where('api_token', $request->token)->first();
+    $user = Auth::user();
 
     if (!$user) {
         return response()->json(['message' => 'المستخدم غير موجود'], 404);

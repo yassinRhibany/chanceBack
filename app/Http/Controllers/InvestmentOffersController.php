@@ -8,12 +8,15 @@ use App\Models\investment_offers;
 use App\Models\investment_opprtunities;
 use App\Models\investments;
 use App\Models\transaction;
+use App\TrancationType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use App\Models\Offer;
 use App\Models\User;
+
+use function Symfony\Component\Clock\now;
 
 class InvestmentOffersController extends Controller
 {
@@ -24,10 +27,10 @@ class InvestmentOffersController extends Controller
     $offers = investment_offers::where('status', 0)
         ->with([
             'investment.opprtunty' => function ($query) {
-                $query->select( 'target_amount', 'collected_amount', 'minimum_target', 'startup', 'payout_frequency','profit_percentage', 'descrption'); // اختر الأعمدة التي تحتاجها
+                $query->select('id', 'target_amount', 'collected_amount', 'minimum_target', 'strtup', 'payout_frequency','profit_percentage', 'descrption'); // اختر الأعمدة التي تحتاجها
             }
         ])
-        ->select('offred_amount', 'price') 
+        ->select('investment_id','offred_amount', 'price') 
         ->get();
 
     return response()->json($offers);
@@ -74,58 +77,65 @@ public function storeOffer(Request $request)
     ], 201);
 }
 
-
 public function buyOffer(Request $request)
 {
     $request->validate([
-        'investment_id' => 'required|integer',
-        'token_seller' => 'required|string',
-        'token_buyer' => 'required|string',
+        'offer_id' => 'required|integer',
+
     ]);
 
     try {
         DB::beginTransaction();
 
-        // 1. إيجاد العرض المتاح
-        $offer = investment_offers::where('investment_id', $request->investment_id)
+        // 1. إيجاد العرض المتاح عن طريق offer_id
+        $offer = investment_offers::where('id', $request->offer_id)
             ->where('status', 0)
             ->firstOrFail();
 
-        // 2. إيجاد المستخدمين عن طريق token
-        $seller = User::where('api_token', $request->token_seller)->firstOrFail();
-        $buyer = User::where('api_token', $request->token_buyer)->firstOrFail();
+        // 2. إيجاد البائع عن طريق token
+        $seller = User::where('id', $offer->seller_id)->firstOrFail();
 
-        // 3. التأكد من أن المشتري يملك رصيد كافٍ
+        // 3. المستخدم المصادق عليه هو المشتري
+        $buyer = Auth::user();
+
+        // التأكد من أن المشتري لا يشتري من نفسه
+        if ($buyer->id === $seller->id) {
+            return response()->json(['message' => 'لا يمكنك شراء العرض الخاص بك'], 400);
+        }
+
+        // 4. التأكد من أن المشتري يملك رصيد كافٍ
         if ($buyer->wallet < $offer->price) {
             return response()->json(['message' => 'رصيد المشتري غير كافٍ'], 400);
         }
 
-        // 4. نقل الرصيد
+        // 5. نقل الرصيد
         $buyer->wallet -= $offer->price;
         $seller->wallet += $offer->price;
 
         $buyer->save();
         $seller->save();
 
-        // 5. تحديث العرض
+        // 6. تحديث العرض
         $offer->status = 1;
         $offer->sold_at = Carbon::now();
         $offer->buyer_id = $buyer->id;
         $offer->seller_id = $seller->id;
         $offer->save();
 
-        
-        // تسجيل عمليات المستخدمين
+        // 7. تسجيل العمليات
         transaction::create([
             'user_id' => $buyer->id,
             'amount' => $offer->price,
-            'type' => 'buy',
+            'type' => TrancationType::Buy,
+            'time_operation' => now(),
         ]);
 
         transaction::create([
             'user_id' => $seller->id,
             'amount' => $offer->price,
-            'type' => 'sell',
+            'type' => TrancationType::Sell,
+            'time_operation' => now(),
+
         ]);
 
         DB::commit();
@@ -139,39 +149,74 @@ public function buyOffer(Request $request)
 }
 
 
-public function getUserInvestments(Request $request)
-{
-    $request->validate([
-        'token' => 'required|string',
-    ]);
-
-    // الحصول على المستخدم بناءً على التوكن
-    $user = User::where('api_token', $request->token)->first();
 
 
-    // الحصول على الاستثمارات مع معلومات الفرص المرتبطة
-    $investments = investments::with(['opportunity:id,target_amount,collected_amount,minimum_target,startup,payout_frequency,profit_percentage,descrption'])
-        ->where('user_id', $user->id)
-        ->get(['id', 'amount', 'opportunity_id']);
-
-    // إعادة تنسيق النتيجة
-    $result = $investments->map(function ($investment) {
-        return [
-            'amount' => $investment->amount,
-            'opportunity' => [
-                'target' => $investment->opportunity->target,
-                'collected' => $investment->opportunity->collected,
-                'minimum' => $investment->opportunity->minimum,
-                'start' => $investment->opportunity->start,
-                'payout_frequency' => $investment->opportunity->payout_frequency,
-                'profit_percentage' => $investment->opportunity->profit_percentage,
-            ]
-        ];
-    });
-
-    return response()->json($result);
-}
 
 
+
+
+
+// public function buyOffer(Request $request)
+// {
+//     $request->validate([
+//         'investment_id' => 'required|integer',
+//         'token_seller' => 'required|string',
+//         'token_buyer' => 'required|string',
+//     ]);
+
+//     try {
+//         DB::beginTransaction();
+
+//         // 1. إيجاد العرض المتاح
+//         $offer = investment_offers::where('investment_id', $request->investment_id)
+//             ->where('status', 0)
+//             ->firstOrFail();
+
+//         // 2. إيجاد المستخدمين عن طريق token
+//         $seller = User::where('api_token', $request->token_seller)->firstOrFail();
+//         $buyer = User::where('api_token', $request->token_buyer)->firstOrFail();
+
+//         // 3. التأكد من أن المشتري يملك رصيد كافٍ
+//         if ($buyer->wallet < $offer->price) {
+//             return response()->json(['message' => 'رصيد المشتري غير كافٍ'], 400);
+//         }
+
+//         // 4. نقل الرصيد
+//         $buyer->wallet -= $offer->price;
+//         $seller->wallet += $offer->price;
+
+//         $buyer->save();
+//         $seller->save();
+
+//         // 5. تحديث العرض
+//         $offer->status = 1;
+//         $offer->sold_at = Carbon::now();
+//         $offer->buyer_id = $buyer->id;
+//         $offer->seller_id = $seller->id;
+//         $offer->save();
+
+        
+//         // تسجيل عمليات المستخدمين
+//         transaction::create([
+//             'user_id' => $buyer->id,
+//             'amount' => $offer->price,
+//             'type' => TrancationType::Buy,
+//         ]);
+
+//         transaction::create([
+//             'user_id' => $seller->id,
+//             'amount' => $offer->price,
+//             'type' => TrancationType::Sell,
+//         ]);
+
+//         DB::commit();
+
+//         return response()->json(['message' => 'تمت عملية الشراء بنجاح', 'offer' => $offer]);
+
+//     } catch (\Exception $e) {
+//         DB::rollBack();
+//         return response()->json(['message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+//     }
+// }
 
 }

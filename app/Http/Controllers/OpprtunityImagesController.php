@@ -22,30 +22,13 @@ class OpprtunityImagesController extends Controller
 
     $image = new opprtunity_images();
     $image->factory_id = $factory->id;
-    $image->path = $path;
+    $image->image_path = $path;
     $image->save();
 
+    
     return response()->json([
         'message' => 'Image uploaded successfully',
         'image_path' => $path,
-    ]);
-}
-   
-public function createImage(Request $request)
-{
-    $request->validate([
-        'factory_id' => 'required|exists:factories,id',
-        'path' => 'required|string',
-    ]);
-
-    $image = opprtunity_images::create([
-        'factory_id' => $request->factory_id,
-        'path' => $request->path,
-    ]);
-
-    return response()->json([
-        'message' => 'Image record created',
-        'image' => $image,
     ]);
 }
 }
