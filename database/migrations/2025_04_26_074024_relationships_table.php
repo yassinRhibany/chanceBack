@@ -37,7 +37,8 @@ return new class extends Migration
         });
         
         Schema::table('returns', function (Blueprint $table) {
-            $table->foreign('investment_id')->references('id')->on('investments')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('opprtunty_id')->references('id')->on('investment_opprtunities')->onDelete('cascade');
         });
 
         Schema::table('opprtunity_images', function (Blueprint $table) {
@@ -54,7 +55,7 @@ return new class extends Migration
         Schema::table('factories', function (Blueprint $table) {
             $table->dropForeign(['user_id']);
             $table->dropForeign(['category_id']);
-            $table->dropForeign(['opprtuntiy_image_id']);
+           // $table->dropForeign(['opprtuntiy_image_id']);
             
         });
     
@@ -72,7 +73,8 @@ return new class extends Migration
             $table->dropForeign(['buyer_id']);
         });
         Schema::table('returns', function (Blueprint $table) {
-            $table->dropForeign(['investment_id']);
+            $table->dropForeign(['user_id']);
+            $table->dropForeign(['opprtunty_id']);
         });
 
         Schema::table('investment_opprtunities', function (Blueprint $table) {

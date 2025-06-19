@@ -7,15 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 class returns extends Model
 {
     protected $fillable = [
-        'investment_id',
+        'user_id',
+        'opprtunty_id',
         'amount',
         'return_date',
-        'status',
        
     ];
-    public function investment()
+   public function opprtunty(){
+        return $this->belongsTo(investment_opprtunities::class,'opprtunty_id');
+    }
+ public function user()
 {
-    return $this->belongsTo(investments::class);
+    return $this->belongsTo(User::class, 'user_id');
 }
 
 }

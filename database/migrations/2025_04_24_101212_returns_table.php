@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('returns', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('investment_id');
+            $table->foreignId('user_id');
+            $table->foreignId('opprtunty_id');
             $table->decimal('amount');
             $table->date('return_date');
-            $table->boolean('status');
             $table->timestamps();
             
         });
@@ -28,5 +28,13 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('returns');
+        Schema::table('returns', function (Blueprint $table) {
+        $table->dropForeign(['opprtunty_id']);
+        $table->dropColumn('opprtunty_id');
+
+        $table->dropForeign(['user_id']);
+        $table->dropColumn('user_id');
+    });
+        
     }
 };

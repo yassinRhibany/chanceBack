@@ -84,7 +84,7 @@ Route::controller(TransactionController::class)->group(function(){
 
 Route::controller(ReturnsController::class)->group(function(){
     Route::get('/Returns/getUserReturns','getUserReturns')->middleware('auth:sanctum');
-    Route::post('/Returns/distributeReturn','distributeReturn')->middleware('auth:sanctum');
+    Route::post('/Returns/distributeReturn/{id}','distributeReturn')->middleware('auth:sanctum');
 
 });
 

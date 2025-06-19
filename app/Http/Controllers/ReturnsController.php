@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\investment_offers;
 use App\Models\investment_opprtunities;
 use App\Models\investments;
 use App\Models\returns;
@@ -50,70 +51,102 @@ public function getUserReturns(Request $request)
     ]);
 }
 
+private function getFinalOwnership($opprtunty_id)
+{
+    // جلب الاستثمارات الأصلية
+    $investments = investments::where('opprtunty_id', $opprtunty_id)->get();
 
-public function distributeReturn(Request $request, $opportunityId)
+    $ownership = [];
+
+    // بناء الملكية من الاستثمارات الأصلية
+    foreach ($investments as $investment) {
+        $userId = $investment->user_id;
+        $ownership[$userId] = ($ownership[$userId] ?? 0) + $investment->amount;
+    }
+
+    // تطبيق التحويلات الناتجة عن العروض
+    $offers = investment_offers::where('status', 1)
+        ->whereIn('investment_id', $investments->pluck('id'))
+        ->get();
+
+    foreach ($offers as $offer) {
+        // خصم من البائع
+        $ownership[$offer->seller_id] = ($ownership[$offer->seller_id] ?? 0) - $offer->amount;
+        // إضافة للمشتري
+        $ownership[$offer->buyer_id] = ($ownership[$offer->buyer_id] ?? 0) + $offer->amount;
+    }
+
+    // إزالة من يملك 0 أو أقل
+    return array_filter($ownership, fn($amount) => $amount > 0);
+}
+public function distributeReturn(Request $request, $opprtunty_id)
 {
     $request->validate([
         'amount' => 'required|numeric|min:1',
     ]);
 
-    $opportunity = investment_opprtunities::with('factory')->findOrFail($opportunityId);
+    $opportunity = investment_opprtunities::with('factory')->findOrFail($opprtunty_id);
     $owner = Auth::user();
 
-    // التحقق أن المستخدم هو مالك المصنع
+    // التأكد أن المستخدم هو مالك المصنع
     if ($opportunity->factory->user_id !== $owner->id) {
         return response()->json(['message' => 'Unauthorized'], 403);
     }
 
-    $investments = investments::where('opportunities_id', $opportunityId)->get();
-    $target = $opportunity->target_amount;
     $returnAmount = $request->amount;
 
     if ($owner->wallet < $returnAmount) {
         return response()->json(['message' => 'Insufficient balance in owner wallet'], 400);
     }
 
+    $ownership = $this->getFinalOwnership($opprtunty_id);
+    $totalOwned = array_sum($ownership);
+
+    if ($totalOwned <= 0) {
+        return response()->json(['message' => 'No valid investors found'], 400);
+    }
+
     DB::beginTransaction();
     try {
-        foreach ($investments as $investment) {
-            $investor = User::find($investment->user_id);
-            $percentage = $investment->amount / $target;
+        foreach ($ownership as $userId => $amountOwned) {
+            $investor = User::find($userId);
+            $percentage = $amountOwned / $totalOwned;
             $investorReturn = round($percentage * $returnAmount, 2);
 
             // تحديث محفظة المستثمر
             $investor->wallet += $investorReturn;
             $investor->save();
 
-            // تسجيل الحركة
+            // تسجيل حركة التحويل
             transaction::create([
                 'user_id' => $investor->id,
                 'type' => TrancationType::Return,
                 'amount' => $investorReturn,
-                'time' => now(),
+                'time_operation' => now(),
             ]);
 
-            // إضافة السجل إلى جدول returns
+            // حفظ سجل العائد
             returns::create([
-                'investment_id' => $investment->id,
+                'user_id' => $investor->id,
+                'opprtunty_id' => $opprtunty_id,
                 'amount' => $investorReturn,
                 'return_date' => now(),
             ]);
         }
 
-        // خصم المبلغ من محفظة المالك
+        // خصم من محفظة المالك
         $owner->wallet -= $returnAmount;
-        // $owner->save();
+        $owner->save();
 
-        // تسجيل حركة السحب للمالك
+        // تسجيل حركة السحب من المالك
         transaction::create([
             'user_id' => $owner->id,
-            'type' => 'return_payment',
+            'type' => TrancationType::Return,
             'amount' => -$returnAmount,
-            'time' => now(),
+            'time_operation' => now(),
         ]);
 
         DB::commit();
-
         return response()->json(['message' => 'Return distributed successfully']);
     } catch (\Exception $e) {
         DB::rollBack();
