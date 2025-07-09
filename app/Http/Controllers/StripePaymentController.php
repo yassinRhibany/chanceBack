@@ -1,78 +1,92 @@
-<!-- <?php
+<?php
 
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Stripe\Stripe;
 use Stripe\PaymentIntent;
 use App\Http\Modle\User;
+use Illuminate\Support\Facades\Auth;
+use Stripe\Stripe;
+use Stripe\Charge;
+use Stripe\Transfer;
 
-// class StripePaymentController extends Controller
-// {
-//     public function create_Payment_Intent(Request $request)
-//     {
- 
-//         Stripe::setApiKey(env('STRIPE_SECRET'));
+class StripePaymentController extends Controller
+{
 
-//         $amount = $request->input('amount');   
+     public function __construct()
+    {
+        Stripe::setApiKey(env('STRIPE_SECRET'));
+    }
 
-//         $intent = PaymentIntent::create([
-//             'amount' => intval($amount * 100), // بالدولار سنت
-//             'currency' => 'usd',
-//             'payment_method_types' => ['card'],
-//             'description' => 'شراء حصة في مشروع فرصة',
-//         ]);
+    public function testStripeConnection()
+{
+    Stripe::setApiKey(env('STRIPE_SECRET'));
 
+    try {
+        $balance = \Stripe\Balance::retrieve();
+        return response()->json($balance); // يعرض رصيد حساب Stripe في وضع test
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+    // 1. إيداع مبلغ إلى المحفظة عبر بطاقة (charge)
+    public function deposit(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'token' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+
+        Charge::create([
+            'amount' => $request->amount * 100, // بالسنتات
+            'currency' => 'usd',
+            'source' => $request->token,
+            'description' => 'Deposit to wallet',
+        ]);
+
+        $user->wallet += $request->amount;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Deposit successful',
+            'balance' => $user->wallet,
+        ]);
+    }
+
+    // 2. سحب مبلغ من المحفظة إلى حساب Stripe متصل (transfer)
+    public function withdraw(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'destination' => 'required|string', // معرف حساب Stripe متصل
+        ]);
+
+        $user = Auth::user();
+
+        if ($user->wallet < $request->amount) {
+            return response()->json([
+                'message' => 'Insufficient balance'
+            ], 400);
+        }
+
+        Transfer::create([
+            'amount' => $request->amount * 100,
+            'currency' => 'usd',
+            'destination' => $request->destination,
+        ]);
+
+        $user->wallet -= $request->amount;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Withdrawal successful',
+            'balance' => $user->wallet,
+        ]);
+    }
    
-//         return response()->json([
-//             'clientSecret' => $intent->client_secret
-//         ]);
-//     }
-
-//     public function deposit(Request $request)
-// {
-//     Stripe::setApiKey(env('STRIPE_SECRET'));
-
-//      $user = auth()->user();
-//     $amount = $request->amount * 100; // Stripe uses cents
-
-//     $paymentIntent = \Stripe\PaymentIntent::create([
-//         'amount' => $amount,
-//         'currency' => 'usd',
-//         'payment_method' => $request->payment_method_id,
-//         'confirmation_method' => 'manual',
-//         'confirm' => true,
-//     ]);
-
-//     // بعد نجاح الدفع
-//     if ($paymentIntent->status === 'succeeded') {
-//         $user->increment('wallet', $request->amount);
-//         return response()->json(['success' => true]);
-//     }
-
-//     return response()->json(['error' => 'Payment failed'], 400);
-// }
-// public function withdraw(Request $request)
-// {
-//     Stripe::setApiKey(env('STRIPE_SECRET'));
-
-//     // $user = auth()->user();
-//     $amount = $request->amount;
-
-//     if ($user->wallet < $amount) {
-//         return response()->json(['error' => 'Insufficient balance'], 400);
-//     }
-
-//     // Stripe Connect account مطلوب (افترض وجود $user->stripe_account_id)
-//     $transfer = \Stripe\Transfer::create([
-//         'amount' => $amount * 100,
-//         'currency' => 'usd',
-//         'destination' => $user->stripe_account_id,
-//     ]);
-
-//     $user->decrement('wallet', $amount);
-
-//     return response()->json(['success' => true, 'transfer' => $transfer]);
-// }
-// } -->
+} 

@@ -88,6 +88,12 @@ Route::controller(ReturnsController::class)->group(function(){
 
 });
 
+Route::controller(StripePaymentController::class)->group(function(){
+    Route::post('/Stripe/deposit','deposit')->middleware('auth:sanctum');
+    Route::post('/Stripe/withdraw','withdraw')->middleware('auth:sanctum');
+
+});
+Route::get('/stripe/test', [StripePaymentController::class, 'testStripeConnection']);
 
 
 

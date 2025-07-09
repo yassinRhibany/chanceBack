@@ -53,30 +53,17 @@ public function getUserReturns(Request $request)
 
 private function getFinalOwnership($opprtunty_id)
 {
-    // جلب الاستثمارات الأصلية
+    // جلب الاستثمارات الحالية المرتبطة بالفرصة
     $investments = investments::where('opprtunty_id', $opprtunty_id)->get();
 
     $ownership = [];
 
-    // بناء الملكية من الاستثمارات الأصلية
     foreach ($investments as $investment) {
         $userId = $investment->user_id;
         $ownership[$userId] = ($ownership[$userId] ?? 0) + $investment->amount;
     }
 
-    // تطبيق التحويلات الناتجة عن العروض
-    $offers = investment_offers::where('status', 1)
-        ->whereIn('investment_id', $investments->pluck('id'))
-        ->get();
-
-    foreach ($offers as $offer) {
-        // خصم من البائع
-        $ownership[$offer->seller_id] = ($ownership[$offer->seller_id] ?? 0) - $offer->amount;
-        // إضافة للمشتري
-        $ownership[$offer->buyer_id] = ($ownership[$offer->buyer_id] ?? 0) + $offer->amount;
-    }
-
-    // إزالة من يملك 0 أو أقل
+    // إزالة من يملك 0 أو أقل فقط كحماية إضافية
     return array_filter($ownership, fn($amount) => $amount > 0);
 }
 public function distributeReturn(Request $request, $opprtunty_id)
@@ -121,6 +108,7 @@ public function distributeReturn(Request $request, $opprtunty_id)
             transaction::create([
                 'user_id' => $investor->id,
                 'type' => TrancationType::Return,
+                'opportunity_id' => $opprtunty_id,
                 'amount' => $investorReturn,
                 'time_operation' => now(),
             ]);
@@ -142,6 +130,7 @@ public function distributeReturn(Request $request, $opprtunty_id)
         transaction::create([
             'user_id' => $owner->id,
             'type' => TrancationType::Return,
+            'opportunity_id' => $opprtunty_id,
             'amount' => -$returnAmount,
             'time_operation' => now(),
         ]);

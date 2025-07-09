@@ -15,6 +15,7 @@ class transaction extends Model
         'amount',
         'type',
         'time_operation',
+        'opprtunty_id',
     ];
     
     public function user()

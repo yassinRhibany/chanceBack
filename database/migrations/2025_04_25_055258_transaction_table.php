@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('transaction', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id');
+              $table->foreignId('opprtunty_id');
             $table->enum('type', ['deposit', 'withdrawal', 'sell', 'buy', 'return']);
             $table->decimal('amount');
             $table->date('time_operation');
@@ -30,6 +31,8 @@ return new class extends Migration
          Schema::table('returns', function (Blueprint $table) {
         $table->dropForeign(['user_id']);
         $table->dropColumn('user_id');
+        $table->dropForeign(['opprtunty_id']);
+        $table->dropColumn('opprtunty_id');
     });
     }
 };
