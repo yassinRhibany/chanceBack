@@ -19,28 +19,25 @@ class ReturnsController extends Controller
     
 public function getUserReturns(Request $request)
 {
-    $user =Auth::user();
-    $returns = returns::with([
-        'investment.opprtunty:id,descrption'
-    ])
-    ->whereHas('investment', function($query) use ($user) {
-        $query->where('user_id', $user->id);
-    })
-    ->orderBy('created_at', 'desc')
-    ->get();
+    $user = Auth::user();
 
-    // مجموع العائدات
+    $returns = Returns::with('opprtunty:id,descrption,user_id')
+        ->whereHas('opprtunty', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+        ->orderBy('created_at', 'desc')
+        ->get();
+
     $total = $returns->sum('amount');
 
-    // إعادة بناء الاستجابة
     $formatted = $returns->map(function ($return) {
-        $investmentAmount = $return->investment->amount ?? 1; // تأمين ضد القسمة على صفر
+        $investmentAmount = $return->opprtunty->target_amount ?? 1; // أو أي حقل يعبر عن مبلغ الاستثمار
         $percentage = ($return->amount / $investmentAmount) * 100;
 
         return [
-            'return_value' => $return->amount, // ← قيمة العائد الحقيقية
-            'return_share' => round($percentage, 2), // ← النسبة كرقم
-            'description' => optional($return->investment->opprtunty)->descrption,
+            'return_value' => $return->amount,
+            'return_share' => round($percentage, 2),
+            'description' => optional($return->opprtunty)->descrption,
             'created_at' => $return->created_at->toDateTimeString(),
         ];
     });
