@@ -108,7 +108,7 @@ public function distributeReturn(Request $request, $opprtunty_id)
             transaction::create([
                 'user_id' => $investor->id,
                 'type' => TrancationType::Return,
-                'opportunity_id' => $opprtunty_id,
+                'opprtunty_id' => $opprtunty_id,
                 'amount' => $investorReturn,
                 'time_operation' => now(),
             ]);
@@ -130,7 +130,7 @@ public function distributeReturn(Request $request, $opprtunty_id)
         transaction::create([
             'user_id' => $owner->id,
             'type' => TrancationType::Return,
-            'opportunity_id' => $opprtunty_id,
+            'opprtunty_id' => $opprtunty_id,
             'amount' => -$returnAmount,
             'time_operation' => now(),
         ]);

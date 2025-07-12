@@ -95,7 +95,7 @@ public function buyOffer(Request $request)
         $seller = User::findOrFail($offer->seller_id);
         $buyer = Auth::user();
 
-
+        
         // نقل الرصيد
         $buyer->wallet -= $offer->price;
         $seller->wallet += $offer->price;
@@ -113,18 +113,18 @@ public function buyOffer(Request $request)
         $oldInvestment = investments::findOrFail($offer->investment_id);
 
         // إنقاص المبلغ من استثمار البائع
-        if ($oldInvestment->amount < $offer->amount) {
+        if ($oldInvestment->amount < $offer->offred_amount) {
             return response()->json(['message' => 'قيمة العرض أكبر من الاستثمار المتاح للبائع'], 400);
         }
 
-        $oldInvestment->amount -= $offer->amount;
+        $oldInvestment->amount -= $offer->offred_amount;
         $oldInvestment->save();
 
         // إضافة استثمار جديد للمشتري
         $newInvestment = investments::create([
             'user_id' => $buyer->id,
-            'opportunity_id' => $oldInvestment->opportunity_id,
-            'amount' => $offer->amount,
+            'opprtunty_id' => $oldInvestment->opprtunty_id,
+            'amount' => $offer->offred_amount,
         ]);
 
         // تسجيل العمليات المالية مع ربط الفرصة
@@ -132,7 +132,7 @@ public function buyOffer(Request $request)
             'user_id' => $buyer->id,
             'amount' => $offer->price,
             'type' => TrancationType::Buy,
-            'opportunity_id' => $oldInvestment->opportunity_id,
+            'opprtunty_id' => $oldInvestment->opprtunty_id,
             'time_operation' => now(),
         ]);
 
@@ -140,7 +140,7 @@ public function buyOffer(Request $request)
             'user_id' => $seller->id,
             'amount' => $offer->price,
             'type' => TrancationType::Sell,
-            'opportunity_id' => $oldInvestment->opportunity_id,
+            'opprtunty_id' => $oldInvestment->opprtunty_id,
             'time_operation' => now(),
         ]);
 

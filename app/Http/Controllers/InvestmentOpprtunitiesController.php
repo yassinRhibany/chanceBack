@@ -212,6 +212,7 @@ public function confirmPurchase(Request $request)
         transaction::create([
             'user_id' => $user->id,
             'amount' => $request->amount,
+            'opprtunty_id' => $request->opprtunty_id,
             'type' => TrancationType::Buy,
             'time_operation' => now(),
         ]);
