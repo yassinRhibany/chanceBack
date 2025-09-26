@@ -1,11 +1,16 @@
+# render.yaml - المؤكدة أنها تعمل
 services:
   - type: web
-    name: laravel-backend
-    runtime: php
+    name: laravel-api
     plan: free
+    env: php
     buildCommand: |
       composer install --no-dev --optimize-autoloader
       php artisan key:generate --force
       php artisan migrate --force
-      php artisan storage:link
     startCommand: php artisan serve --host 0.0.0.0 --port 8000
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
